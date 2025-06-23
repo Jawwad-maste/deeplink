@@ -24,6 +24,11 @@ function cod_verifier_settings_page() {
         update_option('cod_verifier_enable_token', sanitize_text_field($_POST['enable_token']));
         update_option('cod_verifier_test_mode', sanitize_text_field($_POST['test_mode']));
         
+        // NEW: Payment Tab Toggles
+        update_option('cod_verifier_enable_qr_tab', sanitize_text_field($_POST['enable_qr_tab'] ?? '0'));
+        update_option('cod_verifier_enable_app_tab', sanitize_text_field($_POST['enable_app_tab'] ?? '0'));
+        update_option('cod_verifier_enable_razorpay_tab', sanitize_text_field($_POST['enable_razorpay_tab'] ?? '0'));
+        
         // Multi-country settings
         update_option('cod_verifier_allowed_regions', sanitize_text_field($_POST['allowed_regions']));
         update_option('cod_verifier_otp_timer_duration', intval($_POST['otp_timer_duration']));
@@ -49,10 +54,11 @@ function cod_verifier_settings_page() {
         if (!empty($_POST['razorpay_webhook_secret'])) {
             update_option('cod_verifier_razorpay_webhook_secret', sanitize_text_field($_POST['razorpay_webhook_secret']));
         }
-            // Save Merchant UPI ID
-         if (isset($_POST['cod_verifier_merchant_upi_id'])) {
+        // Save Merchant UPI ID
+        if (isset($_POST['cod_verifier_merchant_upi_id'])) {
             update_option('cod_verifier_merchant_upi_id', sanitize_text_field($_POST['cod_verifier_merchant_upi_id']));
         }
+        
         echo '<div class="notice notice-success"><p>' . __('Settings saved successfully!', 'cod-verifier') . '</p></div>';
     }
     
@@ -60,6 +66,12 @@ function cod_verifier_settings_page() {
     $enable_otp = get_option('cod_verifier_enable_otp', '1');
     $enable_token = get_option('cod_verifier_enable_token', '1');
     $test_mode = get_option('cod_verifier_test_mode', '1');
+    
+    // NEW: Payment Tab Settings
+    $enable_qr_tab = get_option('cod_verifier_enable_qr_tab', '1');
+    $enable_app_tab = get_option('cod_verifier_enable_app_tab', '1');
+    $enable_razorpay_tab = get_option('cod_verifier_enable_razorpay_tab', '0');
+    
     $allowed_regions = get_option('cod_verifier_allowed_regions', 'india');
     $otp_timer_duration = get_option('cod_verifier_otp_timer_duration', 30);
     $twilio_sid = get_option('cod_verifier_twilio_sid', '');
@@ -111,6 +123,38 @@ function cod_verifier_settings_page() {
                             <input type="checkbox" name="enable_token" value="1" <?php checked($enable_token, '1'); ?>>
                             <?php _e('Require ₹1 token payment to confirm COD order', 'cod-verifier'); ?>
                         </label>
+                    </td>
+                </tr>
+            </table>
+            
+            <h2><?php _e('💳 Payment Tab Controls', 'cod-verifier'); ?></h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row"><?php _e('Payment Tab Options', 'cod-verifier'); ?></th>
+                    <td>
+                        <fieldset>
+                            <legend class="screen-reader-text"><?php _e('Payment Tab Options', 'cod-verifier'); ?></legend>
+                            
+                            <label>
+                                <input type="checkbox" name="enable_qr_tab" value="1" <?php checked($enable_qr_tab, '1'); ?>>
+                                <?php _e('✔️ Enable "Scan QR Code" Tab', 'cod-verifier'); ?>
+                            </label>
+                            <p class="description"><?php _e('Show QR tab with UPI app redirection', 'cod-verifier'); ?></p>
+                            <br>
+                            
+                            <label>
+                                <input type="checkbox" name="enable_app_tab" value="1" <?php checked($enable_app_tab, '1'); ?>>
+                                <?php _e('✔️ Enable "Pay via App" Tab', 'cod-verifier'); ?>
+                            </label>
+                            <p class="description"><?php _e('Show button tab with app trigger', 'cod-verifier'); ?></p>
+                            <br>
+                            
+                            <label>
+                                <input type="checkbox" name="enable_razorpay_tab" value="1" <?php checked($enable_razorpay_tab, '1'); ?>>
+                                <?php _e('✔️ Enable "Pay via Razorpay" Tab', 'cod-verifier'); ?>
+                            </label>
+                            <p class="description"><?php _e('Show Razorpay tab with QR → Razorpay link', 'cod-verifier'); ?></p>
+                        </fieldset>
                     </td>
                 </tr>
             </table>
@@ -246,6 +290,7 @@ function cod_verifier_settings_page() {
             <h3><?php _e('🚀 Setup Guide', 'cod-verifier'); ?></h3>
             <ol>
                 <li><strong><?php _e('Choose Mode:', 'cod-verifier'); ?></strong> <?php _e('Start with Test Mode for safe testing', 'cod-verifier'); ?></li>
+                <li><strong><?php _e('Configure Payment Tabs:', 'cod-verifier'); ?></strong> <?php _e('Enable/disable payment options as needed', 'cod-verifier'); ?></li>
                 <li><strong><?php _e('Configure Twilio:', 'cod-verifier'); ?></strong> <?php _e('Add your Twilio credentials for SMS', 'cod-verifier'); ?></li>
                 <li><strong><?php _e('Configure Razorpay:', 'cod-verifier'); ?></strong> <?php _e('Add your Razorpay keys for token payments', 'cod-verifier'); ?></li>
                 <li><strong><?php _e('Test Everything:', 'cod-verifier'); ?></strong> <?php _e('Test OTP and token payment in Test Mode', 'cod-verifier'); ?></li>
@@ -269,6 +314,7 @@ function cod_verifier_settings_page() {
                 <li><?php _e('✓ Automatic ₹1 refund after successful verification', 'cod-verifier'); ?></li>
                 <li><?php _e('✓ Retry-friendly: Users can close and retry payments', 'cod-verifier'); ?></li>
                 <li><?php _e('✓ Secure webhook integration for automatic processing', 'cod-verifier'); ?></li>
+                <li><?php _e('✓ Multiple payment tab options with admin controls', 'cod-verifier'); ?></li>
             </ul>
         </div>
     </div>

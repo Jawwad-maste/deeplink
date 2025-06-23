@@ -19,6 +19,14 @@ class CODVerifierAjax {
         add_action('wp_ajax_nopriv_cod_verify_token_payment', array($this, 'verify_token_payment'));
         add_action('wp_ajax_cod_razorpay_webhook', array($this, 'handle_webhook'));
         add_action('wp_ajax_nopriv_cod_razorpay_webhook', array($this, 'handle_webhook'));
+        
+        // NEW: Payment Status Polling
+        add_action('wp_ajax_cod_check_payment_status', array($this, 'check_payment_status'));
+        add_action('wp_ajax_nopriv_cod_check_payment_status', array($this, 'check_payment_status'));
+        
+        // NEW: Create Razorpay Payment Link
+        add_action('wp_ajax_cod_create_razorpay_link', array($this, 'create_razorpay_payment_link'));
+        add_action('wp_ajax_nopriv_cod_create_razorpay_link', array($this, 'create_razorpay_payment_link'));
     }
     
     public function send_otp() {
@@ -552,6 +560,108 @@ class CODVerifierAjax {
         }
         
         wp_send_json_success();
+    }
+    
+    // NEW: Payment Status Polling
+    public function check_payment_status() {
+        if (!wp_verify_nonce($_POST['nonce'], 'cod_verifier_nonce')) {
+            wp_send_json_error(__('Security check failed.', 'cod-verifier'));
+            return;
+        }
+        
+        if (!session_id()) {
+            session_start();
+        }
+        
+        $token_paid = isset($_SESSION['cod_token_paid']) ? $_SESSION['cod_token_paid'] : false;
+        
+        if ($token_paid) {
+            wp_send_json_success(array(
+                'status' => 'success',
+                'message' => __('Payment completed successfully!', 'cod-verifier')
+            ));
+        } else {
+            wp_send_json_success(array(
+                'status' => 'pending',
+                'message' => __('Payment still pending...', 'cod-verifier')
+            ));
+        }
+    }
+    
+    // NEW: Create Razorpay Payment Link
+    public function create_razorpay_payment_link() {
+        if (!wp_verify_nonce($_POST['nonce'], 'cod_verifier_nonce')) {
+            wp_send_json_error(__('Security check failed.', 'cod-verifier'));
+            return;
+        }
+        
+        $test_mode = get_option('cod_verifier_test_mode', '1');
+        
+        if ($test_mode === '1') {
+            // Test mode - return dummy link
+            wp_send_json_success(array(
+                'payment_link' => 'https://razorpay.com/payment-link/test_link_123',
+                'qr_code_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode('https://razorpay.com/payment-link/test_link_123'),
+                'test_mode' => true
+            ));
+            return;
+        }
+        
+        // Production mode - create actual Razorpay payment link
+        $key_id = get_option('cod_verifier_razorpay_key_id', '');
+        $key_secret = get_option('cod_verifier_razorpay_key_secret', '');
+        
+        if (empty($key_id) || empty($key_secret)) {
+            wp_send_json_error(__('Razorpay configuration error.', 'cod-verifier'));
+            return;
+        }
+        
+        $payment_link_data = array(
+            'amount' => 100, // ₹1 in paise
+            'currency' => 'INR',
+            'description' => 'COD Token Payment',
+            'customer' => array(
+                'name' => 'COD Customer',
+                'email' => 'customer@example.com'
+            ),
+            'notify' => array(
+                'sms' => false,
+                'email' => false
+            ),
+            'reminder_enable' => false,
+            'expire_by' => time() + 900, // 15 minutes
+            'notes' => array(
+                'purpose' => 'COD Token Verification'
+            )
+        );
+        
+        $response = wp_remote_post('https://api.razorpay.com/v1/payment_links', array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode($key_id . ':' . $key_secret),
+                'Content-Type' => 'application/json'
+            ),
+            'body' => json_encode($payment_link_data),
+            'timeout' => 30
+        ));
+        
+        if (is_wp_error($response)) {
+            wp_send_json_error(__('Failed to create payment link.', 'cod-verifier'));
+            return;
+        }
+        
+        $body = wp_remote_retrieve_body($response);
+        $result = json_decode($body, true);
+        
+        if (isset($result['short_url'])) {
+            wp_send_json_success(array(
+                'payment_link' => $result['short_url'],
+                'qr_code_url' => 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($result['short_url']),
+                'link_id' => $result['id'],
+                'test_mode' => false
+            ));
+        } else {
+            wp_send_json_error(__('Failed to create payment link.', 'cod-verifier'));
+        }
     }
 }
 

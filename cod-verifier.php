@@ -2,7 +2,7 @@
 /*
 Plugin Name: COD Verifier for WooCommerce
 Description: Multi-country OTP + Token verification for WooCommerce COD orders with Twilio SMS and Razorpay integration
-Version: 1.5.0
+Version: 1.6.0
 Author: Your Name
 Requires at least: 5.0
 Tested up to: 6.4
@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('COD_VERIFIER_VERSION', '1.5.0');
+define('COD_VERIFIER_VERSION', '1.6.0');
 define('COD_VERIFIER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('COD_VERIFIER_PLUGIN_PATH', plugin_dir_path(__FILE__));
 
@@ -134,6 +134,10 @@ class CODVerifier {
                 'testMode' => get_option('cod_verifier_test_mode', '1'),
                 'allowedRegions' => get_option('cod_verifier_allowed_regions', 'india'),
                 'otpTimerDuration' => get_option('cod_verifier_otp_timer_duration', 30),
+                // NEW: Payment Tab Settings
+                'enableQrTab' => get_option('cod_verifier_enable_qr_tab', '1'),
+                'enableAppTab' => get_option('cod_verifier_enable_app_tab', '1'),
+                'enableRazorpayTab' => get_option('cod_verifier_enable_razorpay_tab', '0'),
             ));
         }
     }
@@ -303,6 +307,12 @@ class CODVerifier {
         add_option('cod_verifier_test_mode', '1');
         add_option('cod_verifier_allowed_regions', 'india'); // Default to India for backward compatibility
         add_option('cod_verifier_otp_timer_duration', 30); // Default 30 seconds
+        
+        // NEW: Payment Tab Defaults
+        add_option('cod_verifier_enable_qr_tab', '1'); // Enable QR tab by default
+        add_option('cod_verifier_enable_app_tab', '1'); // Enable App tab by default
+        add_option('cod_verifier_enable_razorpay_tab', '0'); // Disable Razorpay tab by default
+        
         add_option('cod_verifier_twilio_sid', '');
         add_option('cod_verifier_twilio_token', '');
         add_option('cod_verifier_twilio_number', '');
